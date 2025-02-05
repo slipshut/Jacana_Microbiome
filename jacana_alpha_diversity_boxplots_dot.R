@@ -8,7 +8,7 @@ library(ggplot2)
 
 # Upload alpha diversity file
 
-alphaData <- read.csv("alpha_metadata_jacana_micro.csv") #read in alpha diversity metadata
+alphaData <- read.csv("metadata_jacana_micro.csv") #read in alpha diversity metadata
 head(alphaData)
 str(alphaData) #37 samples
 
