@@ -4,15 +4,13 @@ Analysis scripts for Houtz, Acosta, Berlow, Lipshutz 2025. A brief description o
 
 jacana.microbiome.alpha.correlations.R - script to analyze and visualize correlations between competitive traits and alpha diversity
 
-jacana_micro_Github.R - R script to analyze microbiome data, including alpha and beta diversity
-
-jacana_alpha_diversity_boxplots_dot.R - R script to visualize box plots of alpha diversity
+jacana_micro_GitHub_R1.R - R script to analyze and visualize microbiome data, including alpha and beta diversity
 
 manifest_jacana.txt - link sample names with sequenced read file names
 
 metadata_jacana_micro.csv - metadata file containing morphological, hormonal, and behavioral traits related to competition
 
-qiime2_jacana_micro_script.txt - QIIME script
+qiime2_jacana_micro_GitHub_R1.rtf - QIIME script
 
 taxonomy.csv - taxonomy file, exported from QIIME2 for use in R
 
