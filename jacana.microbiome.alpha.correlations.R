@@ -1,13 +1,13 @@
 # Jacana phenotypic integration with microbial diversity
 library(tidyr)
 library(dplyr)
-require (officer)
+require(officer)
 require(rvg)
 require(ggpubr)
 library(ggplot2)
 
 # Set working directory
-setwd("~/Dropbox/Duke/Research Projects/Jacana microbiome")
+setwd("~/Dropbox/Duke/Research Projects/Jacana microbiome/Analyses")
 
 # Read in csv file with columns for species, sex, individual, and traits
 jacana <- read.csv("metadata_jacana_micro.csv", header=TRUE, sep=",")
@@ -85,13 +85,29 @@ cor.test(northern.female$log_testosterone, northern.female$avg_spur) #t = 3.3554
 ggplot(northern.female, aes(x=Chao1, y=avg_spur)) + geom_point( color="#69b3a2")
 cor.test(northern.female$Chao1, northern.female$avg_spur) #t = 1.3487, df = 9, p-value = 0.2104, cor = 0.4100312 
 
-ggplot(northern.female, aes(x=log_testosterone, y=Chao1)) + geom_point(size = 2.5) + 
+Chao_T_NOJA_F <- ggplot(northern.female, aes(x=log_testosterone, y=Chao1)) + geom_point(size = 2.5) + 
   theme_classic() + geom_smooth(method=lm, color = "black") 
 cor.test(northern.female$log_testosterone, northern.female$Chao1, method= "pearson") #t = 3.131, df = 8, p-value = 0.01399, cor = 0.7420518 
 
-ggplot(northern.female, aes(x=log_testosterone, y=FaithPD)) + geom_point(size = 2.5) + 
+# Export plot to powerpoint
+editable_graph <- dml(ggobj = Chao_T_NOJA_F)
+doc <- read_pptx()
+doc <- add_slide(doc)
+doc <- ph_with(x = doc, editable_graph,
+               location = ph_location_type(type = "body") )
+print(doc, target = "Chao_T_NOJA_F.pptx")
+
+FaithPD_T_NOJA_F <- ggplot(northern.female, aes(x=log_testosterone, y=FaithPD)) + geom_point(size = 2.5) + 
   theme_classic() + geom_smooth(method=lm, color = "black") 
 cor.test(northern.female$log_testosterone, northern.female$FaithPD) #t = 2.5087, df = 8, p-value = 0.03644, cor = 0.6635639 
+
+# Export plot to powerpoint
+editable_graph <- dml(ggobj = FaithPD_T_NOJA_F)
+doc <- read_pptx()
+doc <- add_slide(doc)
+doc <- ph_with(x = doc, editable_graph,
+               location = ph_location_type(type = "body") )
+print(doc, target = "FaithPD_T_NOJA_F.pptx")
 
 ggplot(northern.female, aes(x=FaithPD, y=avg_spur)) + geom_point( color="#69b3a2")
 cor.test(northern.female$FaithPD, northern.female$avg_spur) #t = 1.1814, df = 9, p-value = 0.2677, cor = 0.3664164
@@ -102,9 +118,19 @@ northern.male = subset (jacana, species == "J. spinosa" & sex == "male")
 ggplot(northern.male, aes(x=log_testosterone, y=body_mass)) + geom_point( color="#69b3a2")
 cor.test(northern.male$log_testosterone, northern.male$body_mass) #t = 3.022, df = 10, p-value = 0.01285, cor = 0.6908852
 
-ggplot(northern.male, aes(x=body_mass, y=Shannon, color=breeding_stage, shape=breeding_stage)) + geom_point(size = 2.5) + 
-  geom_smooth(method=lm, aes(fill=breeding_stage)) + theme_classic() 
+shannon_body_NOJA_M <- ggplot(northern.male, aes(x=body_mass, y=Shannon)) + geom_point(size = 2.5) + 
+  geom_smooth(method=lm) + theme_classic() 
+shannon_body_NOJA_M
 cor.test(northern.male$body_mass, northern.male$Shannon) #t = 2.4205, df = 10, p-value = 0.03603, cor = 0.6078077 
+
+# Export plot to powerpoint
+editable_graph <- dml(ggobj = shannon_body_NOJA_M)
+doc <- read_pptx()
+doc <- add_slide(doc)
+doc <- ph_with(x = doc, editable_graph,
+               location = ph_location_type(type = "body") )
+print(doc, target = "shannon_body_NOJA_M.pptx")
+
 
 ggplot(northern.male, aes(x=log_testosterone, y=Shannon, color=breeding_stage, shape=breeding_stage)) + geom_point()
 cor.test(northern.male$log_testosterone, northern.male$Shannon) #t = 0.48058, df = 10, p-value = 0.6412, cor = 0.1502483 
