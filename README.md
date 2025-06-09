@@ -4,7 +4,7 @@ Analysis scripts for Houtz, Acosta, Berlow, Lipshutz 2025. A brief description o
 
 jacana.microbiome.alpha.correlations.R - script to analyze and visualize correlations between competitive traits and alpha diversity
 
-jacana_micro_Github.R - R script to analyze microbiome data
+jacana_micro_Github.R - R script to analyze microbiome data, including alpha and beta diversity
 
 jacana_alpha_diversity_boxplots_dot.R - R script to visualize box plots of alpha diversity
 
