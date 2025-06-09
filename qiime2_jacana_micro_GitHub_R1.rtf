@@ -1,0 +1,183 @@
+{\rtf1\ansi\ansicpg1252\cocoartf2761
+\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Helvetica;}
+{\colortbl;\red255\green255\blue255;}
+{\*\expandedcolortbl;;}
+\margl1440\margr1440\vieww11520\viewh8400\viewkind0
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\f0\fs24 \cf0 ##### Jacana Microbiome QIIME2 script #####\
+# Last updated: June 9, 2025\
+\
+# Activate Qiime2\
+\
+conda activate qiime2-amplicon-2024.5\
+\
+# Change or make directory/folder, transfer zipped folder with sequences\
+\
+###Create manifest, download, and move to working directory/folder###\
+\
+#The manifest file must have the column headings: sample-id, forward-absolute-filepath, reverse-absolute-filepath\
+ \
+# Mac: to find an absolute filepath on a mac, double click the file while holding in the option button and click the copy as path option\
+\
+# Save the manifest file as .txt\
+\
+###Import forward and reverse fastq files###\
+# All new sequence data is Phred 33\
+# Always use paired end reads as well if you have an R1 and R2\
+\
+qiime tools import \\\
+  --type 'SampleData[PairedEndSequencesWithQuality]' \\\
+  --input-path manifest_jacana.txt \\\
+  --output-path paired-end-demux.qza \\\
+  --input-format PairedEndFastqManifestPhred33V2\
+  \
+# Your samples are already demultiplexed so now we will create a summary file to inspect where to trim\
+\
+qiime demux summarize \\\
+  --i-data paired-end-demux.qza \\\
+  --o-visualization paired_end_demux.qzv\
+\
+###Denoise with DADA2### (performs quality filtering, denoising, chimera removal, non-biological/primer sequence removal, merging)\
+#If you plan to use dada2 to denoise your sequences, do not merge \'97 dada2 performs read merging automatically after denoising each sequence.\
+# Run time around an hour\
+\
+qiime dada2 denoise-paired --i-demultiplexed-seqs paired-end-demux.qza --p-trim-left-f 19 --p-trim-left-r 20 --p-trunc-len-f 180 --p-trunc-len-r 180 --o-representative-sequences filtered_rep_seqs_dada2.qza --o-table asv_table_dada2.qza --o-denoising-stats stats_dada2.qza\
+\
+ qiime feature-table tabulate-seqs --i-data filtered_rep_seqs_dada2.qza --o-visualization filtered_rep_seqs_dada2.qzv\
+\
+# Summarize table to get total read count and number of ASVs before filtering\
+\
+qiime feature-table summarize \\\
+  --i-table asv_table_dada2.qza \\\
+  --o-visualization asv_table_dada2.qzv\
+  \
+# Assign taxonomy to samples with trained classifier with 515/806 primers\
+# !!! Download Silva seqs and taxs from Qiime2 docs > Data resources > Silva > Silva 138 SSURef NR99 515F/806R region sequences and Silva 138 SSURef NR99 515F/806R region taxonomy !!!\
+# Reads come from the dada2 output sequences\
+# Run time around an hour\
+  \
+  qiime feature-classifier fit-classifier-naive-bayes \\\
+  --i-reference-reads silva-138-99-seqs-515-806.qza \\\
+  --i-reference-taxonomy silva-138-99-tax-515-806.qza \\\
+  --o-classifier silva_jacana_micro_classifier.qza\
+\
+ qiime feature-classifier classify-sklearn \\\
+  --i-classifier silva_jacana_micro_classifier.qza \\\
+  --i-reads filtered_rep_seqs_dada2.qza \\\
+  --o-classification taxonomy_jacana_micro_silva.qza\
+  \
+  qiime metadata tabulate \\\
+  --m-input-file taxonomy_jacana_micro_silva.qza \\\
+  --o-visualization taxonomy_jacana_micro_silva.qzv\
+  \
+# Remove singletons\
+\
+qiime feature-table filter-features \\\
+--i-table asv_table_dada2.qza \\\
+--p-min-frequency 2 \\\
+--o-filtered-table jacana_micro_nosingletons_table.qza\
+\
+# Remove chloroplasts, mitochondria, eukayota, and archaea\
+\
+qiime taxa filter-table \\\
+  --i-table jacana_micro_nosingletons_table.qza \\\
+  --i-taxonomy taxonomy_jacana_micro_silva.qza \\\
+  --p-exclude mitochondria,chloroplast,Eukaryota,Archaea \\\
+  --o-filtered-table jacana_micro_nosingletons_filtered_taxa.qza\
+  \
+# Remove ASVs unassigned to a bacterial phyla (includes Unassigned and Bacteria;p_NA)\
+\
+qiime taxa filter-table \\\
+  --i-table jacana_micro_nosingletons_filtered_taxa.qza \\\
+  --i-taxonomy taxonomy_jacana_micro_silva.qza \\\
+  --p-include p__ \\\
+  --p-mode contains \\\
+  --o-filtered-table jacana_micro_nounassignedphyla_filtered_taxa.qza\
+\
+# Look at interactive detailed samples to identify lowest read count\
+# Summarize table to get total read count and number of ASVs after filtering\
+  \
+qiime feature-table summarize \\\
+  --i-table jacana_micro_nounassignedphyla_filtered_taxa.qza \\\
+  --o-visualization jacana_micro_nounassignedphyla_filtered_taxa.qzv\
+  \
+###Make a phylogenetic tree###\
+\
+qiime phylogeny align-to-tree-mafft-fasttree \\\
+  --i-sequences filtered_rep_seqs_dada2.qza \\\
+  --o-alignment aligned-rep-seqs.qza \\\
+  --o-masked-alignment masked-aligned-rep-seqs.qza \\\
+  --o-tree unrooted-tree.qza \\\
+  --o-rooted-tree rooted-tree.qza\
+  \
+# Qiime2: Export unrarefied ASV table as a biom file\
+# Exports a folder so you have to go in and copy and paste the renamed biom file into the main directory, or drag\
+\
+qiime tools export \\\
+  --input-path jacana_micro_nounassignedphyla_filtered_taxa.qza \\\
+  --output-path unrarefied_ASV_table\
+  \
+# Qiime2: Convert biom file to a txt, open up and DELETE the first row (has "made from biom")\
+# Open, make sure the first cell says "ASVID" to match taxonomy, or change to ASVID in next step\
+# Resave/download as a .csv file \
+\
+biom convert -i feature-table.biom -o unrarefied_ASV_table.txt --to-tsv\
+\
+# Qiime2: Export taxonomy\
+# Open, make sure the first cell says "ASVID" to match ASV table, or change to ASVID\
+# Import into google sheets, as .tsv \
+# Delete the column that says "Confidence"\
+# Resave/download as a .csv\
+\
+qiime tools export \\\
+  --input-path taxonomy_jacana_micro_silva.qza \\\
+  --output-path taxonomy\
+  \
+# Export phylogenetic tree\
+\
+qiime tools export \\\
+  --input-path rooted-tree.qza \\\
+  --output-path tree\
+\
+### The exported ASV table, taxonomy, and tree are used in R to create a phyloseq object\
+### All subsequent steps are carried out in R except the taxa barplots below\
+\
+##### Taxa barplots of all samples for genus level relative abundances #####\
+# Open qzv in view.qiime2.org and export csv at different taxonomic levels for different analyses\
+# Sort to Level 6 = genera\
+\
+#Import biom into qiime2 from R\
+\
+qiime tools import \\\
+--input-path otu_biom_taxa_barplot.biom \\\
+--type 'FeatureTable[Frequency]' \\\
+--input-format BIOMV100Format \\\
+--output-path jacana_rarefied_feature_table.qza\
+\
+#Import taxonomy table into qiime2 from R\
+\
+qiime tools import \\\
+--type 'FeatureData[Taxonomy]' \\\
+--input-format HeaderlessTSVTaxonomyFormat \\\
+--input-path tax_taxa_barplot.txt \\\
+--output-path jacana_rarefied_taxonomy.qza\
+\
+##Average taxa barplots by species and sex##\
+\
+#Here we are using the mean-ceiling function#\
+\
+qiime feature-table group \\\
+--i-table jacana_rarefied_feature_table.qza \\\
+--p-axis sample \\\
+--m-metadata-file metadata_taxabarplot_jacana_micro.txt \\\
+--m-metadata-column "species_sex" \\\
+--p-mode mean-ceiling \\\
+--o-grouped-table jacana_species_sex_grouped_table.qza\
+\
+qiime taxa barplot --i-table jacana_species_sex_grouped_table.qza --i-taxonomy jacana_rarefied_taxonomy.qza --m-metadata-file jacana_grouped_taxabarplot_species_sex_metadata.txt --o-visualization jacana_species_sex_grouped_taxabarplot.qzv\
+\
+# Make taxa barplot of all samples for PAST4 SIMPER analysis\
+\
+qiime taxa barplot --i-table jacana_rarefied_feature_table.qza --i-taxonomy jacana_rarefied_taxonomy.qza --m-metadata-file metadata_taxabarplot_jacana_micro.txt --o-visualization jacana_allsamples_taxabarplot.qzv\
+}
